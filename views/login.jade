@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  canvas
+  script(src="/javascripts/canvas.js") 
+  div.wrapper
+    h1 Login Page
+    form(action='/login', method='POST')
+      label(for='userName') Username:
+      | 
+      input(type='text', id='userName', name='userName', required, placeholder='Enter username')
+      br
+      label(for='passWord') Password:
+      | 
+      input(type='password', id='passWord', name='passWord', required, placeholder='Enter password')
+      br 
+      button(type='submit') Login

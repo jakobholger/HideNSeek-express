@@ -1,0 +1,26 @@
+extends layout
+
+block content
+  body
+    h1 Users List
+    table
+      thead
+        tr
+          th Email
+          th Username
+          th Password
+          th ID
+          th Admin Privileges
+          th Actions
+      tbody
+        each user in users
+          tr
+            td= user.email
+            td= user.username
+            td.max-width-150= user.password
+            td= user.id
+            td= user.isAdmin
+            td
+              form(action='/admin/remove', method='post')
+                input(type='hidden', name='userId', value=user.id)
+                button(type='submit') Remove

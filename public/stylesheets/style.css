@@ -1,0 +1,65 @@
+body {
+  margin: 0px;
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+
+a {
+  color: #00B7FF;
+}
+
+canvas {
+  z-index: -1;
+  top: 0;
+  left: 0;
+  position: absolute;
+}
+
+.wrapper {
+  opacity: 0.95;
+  z-index: 1;
+  background-color: rgb(185, 185, 185);
+  width: 80%; /* Adjust the width for smaller screens */
+  max-width: 400px; /* Set a maximum width for small screens */
+  margin: 5% auto; /* Center the wrapper */
+  border-radius: 4%;
+  border: 1px solid;
+  border-color: red;
+}
+
+/* Add a media query for small screens */
+@media (max-width: 576px) {
+  .wrapper {
+    width: 90%; /* Adjust the width for smaller screens */
+    max-width: none; /* Remove the maximum width for small screens */
+  }
+
+  input {
+    width: 100%; /* Make the input fields 100% width */
+    box-sizing: border-box; /* Include padding and border in the total width */
+    margin-bottom: 10px; /* Adjust the margin as needed */
+  }
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+.max-width-150{
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

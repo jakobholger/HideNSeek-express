@@ -1,0 +1,27 @@
+extends layout
+
+block content
+  canvas
+  script(src="/javascripts/canvas.js") 
+  div.wrapper
+    h1 Sign up Page
+    form(action='/sign-up', method='POST')
+      label(for='email') Email:
+      | 
+      input(type='email', id='email', name='email', required, placeholder='Enter email')
+      br
+      label(for='userName') Username:
+      | 
+      input(type='text', id='userName', name='userName', required, placeholder='Enter username')
+      br
+      label(for='passWord1') Password:
+      | 
+      input(type='password', id='passWord1', name='passWord1', required, placeholder='Enter password')
+      | 
+      br
+      label(for='passWord2') Repeat:
+      | 
+      input(type='password', id='passWord2', name='passWord2', required, placeholder='Repeat password')
+      | 
+      br
+      button(type='submit') Sign Up

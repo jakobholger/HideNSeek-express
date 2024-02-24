@@ -1,0 +1,28 @@
+doctype html
+html
+  head
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css', integrity='sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T', crossorigin='anonymous')
+    script(src='https://code.jquery.com/jquery-3.6.4.min.js')
+    script(src='https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js')
+    script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js')
+
+  body
+    nav.navbar.navbar-expand-lg.navbar-light.bg-light
+      a.navbar-brand(href='/') SLAKTSTUDIOS
+      button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbarNavAltMarkup', aria-controls='navbarNavAltMarkup', aria-expanded='false', aria-label='Toggle navigation')
+        span.navbar-toggler-icon
+      .collapse.navbar-collapse#navbarNavAltMarkup
+        .navbar-nav
+          a.nav-item.nav-link.active(href='/') Home
+          a.nav-item.nav-link(href='/graphics') Graphics
+          if authenticated
+           a.nav-item.nav-link(href='/admin') Admin
+           a.nav-item.nav-link(href='/logout') Logout
+          else
+           a.nav-item.nav-link(href='/login') Login
+           a.nav-item.nav-link(href='/sign-up') Sign up
+           a.nav-item.nav-link(href='/socket') Socket
+      
+    block content
