@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-const db = require('../db')
+const db = require('../src/db')
 const session = require('express-session')
 const bcrypt = require('bcrypt')
 

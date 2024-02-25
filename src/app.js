@@ -6,8 +6,8 @@ var logger = require('morgan');
 const db = require('./db')
 const session = require('express-session')
 const SQLiteStore = require('connect-sqlite3')(session);
-var indexRouter = require('./routes/index');
-var adminRouter = require('./routes/admin');
+var indexRouter = require('../routes/index');
+var adminRouter = require('../routes/admin');
 const socketIO = require('socket.io')
 
 var app = express();
