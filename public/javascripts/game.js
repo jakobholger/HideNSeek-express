@@ -4,8 +4,8 @@ const ctx = canvas.getContext('2d')
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let isMovingForward = false;
-let isMovingBackward = false;
+let isMovingUp = false;
+let isMovingDown = false;
 let isMovingLeft = false;
 let isMovingRight = false;
 
@@ -14,35 +14,37 @@ window.addEventListener("resize", () => {
   canvas.height = window.innerHeight;
 });
 
-let bari1 = {
-  x:200,
-  y:300,
-  width:100,
-  height:400
-}
+let barriers = [
+  { x: 200, y: 300, width: 10, height:400},
+  { x: 700, y: 300, width: 300, height:10}
+]
 
 class Player{
   constructor(){
-    this.id;
     this.width = 80
     this.x = canvas.width/2 - this.width/2
     this.height = 80
     this.y = canvas.height/2 - this.height/2
+    this.relativeX = canvas.width/2 - this.width/2;
+    this.relativeY = canvas.height/2 - this.height/2;
   }
-  draw(){
-    if(isMovingForward){
-      this.y-=1
+  updatePosition(){
+    if(isMovingUp){
+      this.relativeY--
     }
-    if(isMovingBackward){
-      this.y+=1
+    if(isMovingDown){
+      this.relativeY++
     }
     if(isMovingRight){
-      this.x+=1
+      this.relativeX++
     }
     if(isMovingLeft){
-      this.x-=1
+      this.relativeX--
     }
-    ctx.fillStyle = "red"
+  }
+  draw(){
+    this.updatePosition()
+    ctx.fillStyle = "blue"
     ctx.fillRect(this.x,this.y,this.width,this.height)
   }
 }
@@ -54,20 +56,25 @@ class Enemy{
   constructor(id){
     this.id = id
     this.width = 80
-    this.x;
+    this.x = canvas.width/2 - this.width/2;
     this.height = 80
-    this.y;
+    this.y = canvas.height/2 - this.height/2;
   }
   draw(){
-
-    let left = lineLine(player.x,player.y,this.x,this.y,bari1.x,bari1.y, bari1.x, bari1.y+bari1.height)
-    let right = lineLine(player.x,player.y,this.x,this.y,bari1.x+bari1.width,bari1.y, bari1.x+bari1.width, bari1.y+bari1.height)
-    let top = lineLine(player.x,player.y,this.x,this.y,bari1.x,bari1.y, bari1.x+bari1.width, bari1.y)
-    let bottom = lineLine(player.x,player.y,this.x,this.y,bari1.x,bari1.y+bari1.height, bari1.x+bari1.width, bari1.y+bari1.height)
+    let left;
+    let right;
+    let top;
+    let bottom;
+    for(let i=0;i<barriers.length;i++){
+    left = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y, barriers[i].x, barriers[i].y+barriers[i].height)
+    right = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x+barriers[i].width,barriers[i].y, barriers[i].x+barriers[i].width, barriers[i].y+barriers[i].height)
+    top = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y, barriers[i].x+barriers[i].width, barriers[i].y)
+    bottom = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y+barriers[i].height, barriers[i].x+barriers[i].width, barriers[i].y+barriers[i].height)
+    }
     
     if (left || right || top || bottom) {
-      
-  }
+     console.log("not visible")
+    }
   else{
     ctx.fillStyle = "red"
     ctx.fillRect(this.x,this.y,this.width,this.height)
@@ -94,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const foundObject = enemies.find(obj => obj.id === data.playerId);
 
     if(foundObject){
-      console.log("Player already in array.")
+      //console.log("Player already in array.")
     }
     else{
       enemies.push(new Enemy(data.playerId))
@@ -102,8 +109,8 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log(data)
     const enemyToUpdate = enemies.find(enemy => enemy.id === data.playerId);
     if (enemyToUpdate) {
-      enemyToUpdate.x = data.position.x;
-      enemyToUpdate.y = data.position.y;
+      enemyToUpdate.x = canvas.width/2-player.width/2 - player.relativeX + data.position.x;
+      enemyToUpdate.y = canvas.height/2-player.height/2 - player.relativeY + data.position.y;
     }
   });
 
@@ -116,18 +123,60 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   
   setInterval(() => {
-    socket.emit('playerPosition', { id: socket.id ,x: player.x, y: player.y})
+    socket.emit('playerPosition', { id: socket.id ,x: player.relativeX, y: player.relativeY})
   }, 20);
 });
 
 function animate(){
+  if(isMovingUp){
+    for(let i=0;i<barriers.length;i++){
+      barriers[i].y++
+    }
+    
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].y++
+    }
+
+  }
+
+  if(isMovingDown){
+    for(let i=0;i<barriers.length;i++){
+      barriers[i].y--
+    }
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].y--
+    }
+  }
+
+  if(isMovingRight){
+    for(let i=0;i<barriers.length;i++){
+      barriers[i].x--
+    }
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].x--
+    }
+
+  }
+
+  if(isMovingLeft){
+    for(let i=0;i<barriers.length;i++){
+      barriers[i].x++
+    }
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].x++
+    }
+  }
+ 
   // clear background with black
   ctx.fillStyle = "black"
   ctx.fillRect(0,0,canvas.width,canvas.height)
 
   // draw a barrier with white
   ctx.fillStyle = "white"
-  ctx.fillRect(bari1.x,bari1.y,bari1.width,bari1.height)
+  for(let i=0;i<barriers.length;i++){
+    ctx.fillRect(barriers[i].x,barriers[i].y,barriers[i].width,barriers[i].height)
+  }
+
 
   player.draw()
 
@@ -142,10 +191,10 @@ animate()
 
 window.addEventListener("keydown",(e)=>{
   if(e.code=="KeyW"){
-    isMovingForward =true
+    isMovingUp =true
   }
   if(e.code=="KeyS"){
-    isMovingBackward = true
+    isMovingDown = true
   }
   if(e.code=="KeyD"){
     isMovingRight = true
@@ -157,10 +206,10 @@ window.addEventListener("keydown",(e)=>{
 
 window.addEventListener("keyup",(e)=>{
   if(e.code=="KeyW"){
-    isMovingForward = false
+    isMovingUp = false
   }
   if(e.code=="KeyS"){
-    isMovingBackward = false
+    isMovingDown = false
   }
   if(e.code=="KeyD"){
     isMovingRight = false
