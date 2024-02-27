@@ -4,6 +4,13 @@ const ctx = canvas.getContext('2d')
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+// scale all object depending on  canvas width // height
+let scale = Math.min(canvas.width / 800, canvas.height / 600);
+
+let gameSpeed = 1.5
+
+let speed = gameSpeed * scale
+
 let isMovingUp = false;
 let isMovingDown = false;
 let isMovingLeft = false;
@@ -12,37 +19,60 @@ let isMovingRight = false;
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  scale = Math.min(canvas.width / 800, canvas.height / 600);
 });
 
-let barriers = [
-  { x: 200, y: 300, width: 10, height:400},
-  { x: 700, y: 300, width: 300, height:10}
+let worldBorder = [
+  { x: -2000, y: -2000, width: 2000 + canvas.width + 2000, height: 1000},
+  { x: -2000, y: canvas.height + 1000, width: 2000 + canvas.width + 2000, height: 1000},
+  { x: -2000, y: -2000, width: 1000, height: 2000 + canvas.height+1002},
+  { x: canvas.width+1000, y: -2000, width: 1000, height: 2000 + canvas.height + 2000}
 ]
+
+let barriers = []
+
+import Barrier from './barrier.js'
+
+barriers.push(new Barrier(200,300,10,400,ctx, scale))
+barriers.push(new Barrier(700,300,300,10,ctx, scale))
+barriers.push(new Barrier(1000,500,10,400,ctx, scale))
+
+console.log(barriers)
 
 class Player{
   constructor(){
-    this.width = 80
+    this.width = 80 * scale
     this.x = canvas.width/2 - this.width/2
-    this.height = 80
+    this.height = 80 * scale
     this.y = canvas.height/2 - this.height/2
     this.relativeX = canvas.width/2 - this.width/2;
     this.relativeY = canvas.height/2 - this.height/2;
   }
   updatePosition(){
+    this.width = 80 * scale
+    this.x = canvas.width/2 - this.width/2
+    this.height = 80 * scale
+    this.y = canvas.height/2 - this.height/2
     if(isMovingUp){
-      this.relativeY--
+      this.relativeY-= speed
     }
     if(isMovingDown){
-      this.relativeY++
+      this.relativeY+= speed
     }
     if(isMovingRight){
-      this.relativeX++
+      this.relativeX+= speed
     }
     if(isMovingLeft){
-      this.relativeX--
+      this.relativeX-= speed
+    }
+  }
+  checkCollisions(){
+    for(let i=0;i<worldBorder.length;i++){
+
     }
   }
   draw(){
+    this.checkCollisions()
     this.updatePosition()
     ctx.fillStyle = "blue"
     ctx.fillRect(this.x,this.y,this.width,this.height)
@@ -55,12 +85,18 @@ let player = new Player()
 class Enemy{
   constructor(id){
     this.id = id
-    this.width = 80
+    this.width = 80 * scale
     this.x = canvas.width/2 - this.width/2;
-    this.height = 80
+    this.height = 80 * scale
     this.y = canvas.height/2 - this.height/2;
   }
+  updatePosition(){
+    this.width = 80 * scale
+    this.height = 80 * scale
+    console.log({enemy_x: Math.round(this.x), enemy_y: Math.round(this.y)}, {player_x: Math.round(player.relativeX), player_y:Math.round(player.relativeY)})
+  }
   draw(){
+    this.updatePosition()
     let left;
     let right;
     let top;
@@ -70,15 +106,14 @@ class Enemy{
     right = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x+barriers[i].width,barriers[i].y, barriers[i].x+barriers[i].width, barriers[i].y+barriers[i].height)
     top = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y, barriers[i].x+barriers[i].width, barriers[i].y)
     bottom = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y+barriers[i].height, barriers[i].x+barriers[i].width, barriers[i].y+barriers[i].height)
-    }
-    
+    }    
     if (left || right || top || bottom) {
      console.log("not visible")
     }
-  else{
-    ctx.fillStyle = "red"
-    ctx.fillRect(this.x,this.y,this.width,this.height)
-  }
+    else{
+      ctx.fillStyle = "red"
+      ctx.fillRect(canvas.width/2-player.width/2 - player.relativeX + this.x,canvas.height/2-player.height/2 - player.relativeY + this.y,this.width,this.height)
+    }
   }
 }
 
@@ -106,11 +141,11 @@ document.addEventListener('DOMContentLoaded', function () {
     else{
       enemies.push(new Enemy(data.playerId))
     }
-    console.log(data)
+    //console.log(data)
     const enemyToUpdate = enemies.find(enemy => enemy.id === data.playerId);
     if (enemyToUpdate) {
-      enemyToUpdate.x = canvas.width/2-player.width/2 - player.relativeX + data.position.x;
-      enemyToUpdate.y = canvas.height/2-player.height/2 - player.relativeY + data.position.y;
+      enemyToUpdate.x = data.position.x;
+      enemyToUpdate.y = data.position.y;
     }
   });
 
@@ -129,41 +164,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function animate(){
   if(isMovingUp){
-    for(let i=0;i<barriers.length;i++){
-      barriers[i].y++
-    }
-    
-    for(let i=0;i<enemies.length;i++){
-      enemies[i].y++
+    for(let i=0;i<worldBorder.length;i++){
+      worldBorder[i].y+= speed
     }
 
   }
 
   if(isMovingDown){
-    for(let i=0;i<barriers.length;i++){
-      barriers[i].y--
-    }
-    for(let i=0;i<enemies.length;i++){
-      enemies[i].y--
+    for(let i=0;i<worldBorder.length;i++){
+      worldBorder[i].y-= speed
     }
   }
 
   if(isMovingRight){
-    for(let i=0;i<barriers.length;i++){
-      barriers[i].x--
+    for(let i=0;i<worldBorder.length;i++){
+      worldBorder[i].x-= speed
     }
-    for(let i=0;i<enemies.length;i++){
-      enemies[i].x--
-    }
-
   }
 
   if(isMovingLeft){
-    for(let i=0;i<barriers.length;i++){
-      barriers[i].x++
-    }
-    for(let i=0;i<enemies.length;i++){
-      enemies[i].x++
+    for(let i=0;i<worldBorder.length;i++){
+      worldBorder[i].x+= speed
     }
   }
  
@@ -171,19 +192,24 @@ function animate(){
   ctx.fillStyle = "black"
   ctx.fillRect(0,0,canvas.width,canvas.height)
 
+  // draw world border
+  ctx.fillStyle = "white"
+  for(let i=0;i<worldBorder.length;i++){
+    ctx.fillRect(worldBorder[i].x, worldBorder[i].y, worldBorder[i].width, worldBorder[i].height)
+  }
+
   // draw a barrier with white
   ctx.fillStyle = "white"
   for(let i=0;i<barriers.length;i++){
-    ctx.fillRect(barriers[i].x,barriers[i].y,barriers[i].width,barriers[i].height)
+    barriers[i].draw(ctx, canvas, player)
   }
-
-
-  player.draw()
-
+  
     // Draw enemies
     enemies.forEach(enemy => {
       enemy.draw();
     });
+
+    player.draw()
 
   requestAnimationFrame(animate)
 }
@@ -218,6 +244,8 @@ window.addEventListener("keyup",(e)=>{
     isMovingLeft = false
   }
 })
+
+
 
 function lineLine(x1,y1,x2,y2,x3,y3,x4,y4){
   let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
