@@ -17,6 +17,8 @@ const isAuthenticated = (req, res, next) => {
 //Homepage
 router.get('/', function(req, res, next) {
   let authenticated = false;
+  let ipAddress = req.socket.remoteAddress;
+  console.log(ipAddress)
   if(req.session.userId) authenticated=true
   res.render('index', { authenticated });
 });
@@ -47,8 +49,14 @@ router.get('/sign-up', function(req, res, next) {
 });
 
 router.get('/logout', isAuthenticated, (req, res) => {
+  const query = 'SELECT * FROM users WHERE id = ?'
   // Destroy the entire session
-  console.log("User: " + req.session.userId + " is signing out.")
+
+  db.all(query,[req.session.userId],(err,row)=>{
+    if(err) return console.error(err.message)
+    console.log("User: " + row.username + " is signing out.")
+  })
+
   req.session.destroy((err) => {
     if (err) {
       console.error(err.message);

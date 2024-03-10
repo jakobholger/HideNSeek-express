@@ -26,6 +26,7 @@ class Player{
     this.id = id;
     this.x = undefined;
     this.y = undefined;
+    this.isSeeker = false;
   }
   getPosition() {
     return { x: this.x, y: this.y };
@@ -34,13 +35,48 @@ class Player{
 
 let players = {}; // Store players
 
+let gameState = {state:"starting", time:10}
+
+function startGame(){
+  let countdownTime = 10
+  const countdownInterval = setInterval(function() {
+    // Decrement the countdown time
+    countdownTime--;
+    gameState.time = countdownTime
+
+    // If the countdown reaches 0, change the game state and stop updating
+    if (countdownTime < 1) {
+      gameState.state = "running"
+      clearInterval(countdownInterval);
+    }
+  }, 1000);
+}
+
+
+
+
 // socket.io connection handling
 io.on('connection', (socket) => {
-  console.log('A user connected');
 
   // Create a new Player instance serverside
   let player = new Player(socket.id);
   players[socket.id] = player;
+
+  // gamestate
+  console.log('A user connected');
+
+
+
+  if(Object.keys(players).length<2){
+    socket.broadcast.emit('gameState', {state:"running", time:0})
+  }
+  else{
+    const keys = Object.keys(players);
+    players[keys[0]].isSeeker = true;
+    startGame()
+  }
+
+
 
   // Broadcast the new user's information to all connected clients
   socket.broadcast.emit('newUserConnected', { playerId: socket.id, position: player.getPosition() });
@@ -52,13 +88,24 @@ io.on('connection', (socket) => {
     player.y = position.y
 
     //Broadcast the players new position
-    socket.broadcast.emit('updatePlayerPosition', { playerId: socket.id, position: {x: player.x, y: player.y} });
+    socket.broadcast.emit('updatePlayerPosition', { playerId: socket.id, position: {x: player.x, y: player.y}, role: player.isSeeker });
   });
+
+  socket.on('requestState', ()=>{
+    socket.broadcast.emit('gameState', gameState)
+  })
 
   socket.on('disconnect', () => {
     console.log('User disconnected');
     io.emit('userDisconnected', { playerId: socket.id });
     delete players[socket.id]
+
+    if(Object.keys(players).length<2){
+      io.emit('gameState', {state:"running", time:0})
+    }
+    else{
+      startGame()
+    }
   });
 });
 
@@ -88,21 +135,24 @@ app.use('/', indexRouter);
 app.use('/admin', adminRouter);
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  req.db = db;
-  next(createError(404));
-});
+const notFoundHandler = (req, res, next) => {
+  const ipAddress = req.ip.replace(/^::ffff:/, ''); // Remove the IPv6 part
+  console.log('Client IP Address:', ipAddress);
+  res.status(404).json({
+      error: 404,
+      message: "Route not found."
+    })
+    
+  // Gracefully shut down the server
+  server.close(() => {
+    console.log('Server is shutting down');
+    process.exit(0); // Exit the process (optional)
+  });
+  }
+  app.use(notFoundHandler);
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
+
 
 // database querying
 /*const queryUsers = 'SELECT * FROM users'

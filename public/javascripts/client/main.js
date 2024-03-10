@@ -1,3 +1,4 @@
+// setup canvas
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext('2d')
 
@@ -7,9 +8,9 @@ canvas.height = window.innerHeight;
 // scale all object depending on  canvas width // height
 let scale = Math.min(canvas.width / 800, canvas.height / 600);
 
-let gameSpeed = 1.5
+let speed = 1.8
 
-let speed = gameSpeed * scale
+let gameState = {state:undefined, time:undefined};
 
 let isMovingUp = false;
 let isMovingDown = false;
@@ -22,97 +23,188 @@ window.addEventListener("resize", () => {
   scale = Math.min(canvas.width / 800, canvas.height / 600);
 });
 
-let worldBorder = [
-  { x: -2000, y: -2000, width: 2000 + canvas.width + 2000, height: 1000},
-  { x: -2000, y: canvas.height + 1000, width: 2000 + canvas.width + 2000, height: 1000},
-  { x: -2000, y: -2000, width: 1000, height: 2000 + canvas.height+1002},
-  { x: canvas.width+1000, y: -2000, width: 1000, height: 2000 + canvas.height + 2000}
-]
+// imports
+import Barrier from './barrier.js'
+import { checkCollision } from './utilities/collision.js';
+import { lineRect } from './utilities/visibility.js';
+
+let worldBorder = []
+//top
+worldBorder.push(new Barrier(-2000, -2000, 4000, 1000))
+
+// bottom
+worldBorder.push(new Barrier(-2000, 1000, 4000, 1000))
+
+// left
+worldBorder.push(new Barrier(-2000, -2000, 1000, 4000))
+
+//right
+worldBorder.push(new Barrier(1000, -2000, 1000, 4000))
 
 let barriers = []
 
-import Barrier from './barrier.js'
+// create spawnbox, draw later in program
+barriers.push(new Barrier(-100, -100, 200, 3))
+barriers.push(new Barrier(-100, -100, 3, 200))
+barriers.push(new Barrier(100, -100, 3, 200))
 
-barriers.push(new Barrier(200,300,10,400,ctx, scale))
-barriers.push(new Barrier(700,300,300,10,ctx, scale))
-barriers.push(new Barrier(1000,500,10,400,ctx, scale))
+// around spawnarea
+// topleft corner
+barriers.push(new Barrier(-300, -300, 200, 3))
+barriers.push(new Barrier(-300, -300, 3, 200))
+// topright corner
+barriers.push(new Barrier(100, -300, 200, 3))
+barriers.push(new Barrier(300, -300, 3, 200))
+//bottomleft corner
+barriers.push(new Barrier(-300, 100, 3, 200))
+barriers.push(new Barrier(-300, 300, 200, 3))
+//bottom right corner
+barriers.push(new Barrier(300, 100, 3, 200))
+barriers.push(new Barrier(100, 300, 200, 3))
 
-console.log(barriers)
+// barrier right spawn exit
+barriers.push(new Barrier(500,-200,3,400))
+barriers.push(new Barrier(500,0,300,3))
 
+// spawn door
+let spawnDoor = new Barrier(-100,100,200,3)
+
+// playerclass
 class Player{
   constructor(){
-    this.width = 80 * scale
-    this.x = canvas.width/2 - this.width/2
-    this.height = 80 * scale
-    this.y = canvas.height/2 - this.height/2
-    this.relativeX = canvas.width/2 - this.width/2;
-    this.relativeY = canvas.height/2 - this.height/2;
+    this.isDead = false;
+    this.isSeeker = false;
+    this.isColliding = false
+    this.width = 80
+    this.drawX = canvas.width/2 - this.width/2
+    this.height = 80
+    this.drawY = canvas.height/2 - this.height/2
+    this.x = 0 - this.width/2;
+    this.y = 0 - this.height/2;
+    this.dx = 0
+    this.dy = 0
+    this.previousX = 0 - this.width/2;
+    this.previousY = 0 - this.height/2;
   }
   updatePosition(){
-    this.width = 80 * scale
-    this.x = canvas.width/2 - this.width/2
-    this.height = 80 * scale
-    this.y = canvas.height/2 - this.height/2
+    this.drawX = canvas.width/2 - this.width/2
+    this.drawY = canvas.height/2 - this.height/2
     if(isMovingUp){
-      this.relativeY-= speed
+      this.dy = -speed
     }
     if(isMovingDown){
-      this.relativeY+= speed
+      this.dy = speed
     }
     if(isMovingRight){
-      this.relativeX+= speed
+       this.dx = speed
     }
     if(isMovingLeft){
-      this.relativeX-= speed
+       this.dx = -speed
     }
+    if(!isMovingUp && !isMovingDown){
+      this.dy = 0
+    }
+    if(!isMovingRight && !isMovingLeft){
+      this.dx = 0
+    }
+    this.x+=this.dx
+    this.y+=this.dy
   }
   checkCollisions(){
-    for(let i=0;i<worldBorder.length;i++){
-
+    for(let i=0;i<barriers.length;i++){
+      if(checkCollision(this,barriers[i])){
+          this.x = this.previousX
+          this.y = this.previousY
+        }
     }
-  }
+    if(this.x<-1000){
+      this.x=-1000
+    }
+    if(this.x+this.width>1000){
+      this.x=1000-this.width
+    }
+    if(this.y+this.height>1000){
+      this.y=1000-this.height
+    }
+    if(this.y<-1000){
+      this.y=-1000
+    }
+    if(this.x>spawnDoor.x && this.x+this.width<spawnDoor.x+spawnDoor.width
+      && gameState.state == "starting" && this.isSeeker && this.y+this.height>spawnDoor.y){
+        this.y = spawnDoor.y-this.height
+    }
+  } 
   draw(){
-    this.checkCollisions()
+    this.previousX = this.x
+    this.previousY = this.y
+    this.tick++
     this.updatePosition()
+    this.checkCollisions()
     ctx.fillStyle = "blue"
-    ctx.fillRect(this.x,this.y,this.width,this.height)
+    ctx.fillRect(this.drawX,this.drawY,this.width,this.height)
   }
 }
+
 
 let player = new Player()
 
 
 class Enemy{
   constructor(id){
+    this.isDead = false;
+    this.isVisible = true;
     this.id = id
-    this.width = 80 * scale
+    this.width = 80
     this.x = canvas.width/2 - this.width/2;
-    this.height = 80 * scale
+    this.height = 80
     this.y = canvas.height/2 - this.height/2;
+    this.isSeeker = false;
   }
   updatePosition(){
-    this.width = 80 * scale
-    this.height = 80 * scale
-    console.log({enemy_x: Math.round(this.x), enemy_y: Math.round(this.y)}, {player_x: Math.round(player.relativeX), player_y:Math.round(player.relativeY)})
+    this.width = 80 
+    this.height = 80
   }
   draw(){
-    this.updatePosition()
-    let left;
-    let right;
-    let top;
-    let bottom;
+    this.updatePosition() 
+
+        if(checkCollision(this,player) && player.isSeeker){
+            this.isDead = true;
+          }
+
+
+      let hit = lineRect(player.x + player.width/2, player.y + player.height/2, this.x + this.width/2, this.y + this.height/2, spawnDoor.x
+        , spawnDoor.y, spawnDoor.width, spawnDoor.height)
+        /*ctx.strokeStyle = "white"
+        ctx.beginPath()
+        ctx.moveTo((canvas.width/2-player.width/2 - player.x + this.x) + this.width/2 , (canvas.height/2-player.height/2 - player.y + this.y) + this.height/2)
+        ctx.lineTo(player.x + player.width/2, player.y + player.height/2)
+        ctx.stroke()*/
+
+      if(hit && gameState.state == "starting" && player.isSeeker){
+        this.isVisible = false;
+      }
+    
+
     for(let i=0;i<barriers.length;i++){
-    left = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y, barriers[i].x, barriers[i].y+barriers[i].height)
-    right = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x+barriers[i].width,barriers[i].y, barriers[i].x+barriers[i].width, barriers[i].y+barriers[i].height)
-    top = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y, barriers[i].x+barriers[i].width, barriers[i].y)
-    bottom = lineLine(player.relativeX,player.relativeY,this.x,this.y,barriers[i].x,barriers[i].y+barriers[i].height, barriers[i].x+barriers[i].width, barriers[i].y+barriers[i].height)
-    }    
-    if (left || right || top || bottom) {
-     console.log("not visible")
+      let hit = lineRect(player.x + player.width/2, player.y + player.height/2, this.x + this.width/2, this.y + this.height/2, barriers[i].x
+        , barriers[i].y, barriers[i].width, barriers[i].height)
+        /*ctx.strokeStyle = "white"
+        ctx.beginPath()
+        ctx.moveTo((canvas.width/2-player.width/2 - player.x + this.x) + this.width/2 , (canvas.height/2-player.height/2 - player.y + this.y) + this.height/2)
+        ctx.lineTo(player.x + player.width/2, player.y + player.height/2)
+        ctx.stroke()*/
+
+      if(hit){
+        this.isVisible = false;
+        break;
+      }
+    }
+    if(this.isVisible){
+      ctx.fillStyle = "red"
+      ctx.fillRect(canvas.width/2-player.width/2 - player.x + this.x,canvas.height/2-player.height/2 - player.y + this.y,this.width,this.height)
     }
     else{
-      ctx.fillStyle = "red"
-      ctx.fillRect(canvas.width/2-player.width/2 - player.relativeX + this.x,canvas.height/2-player.height/2 - player.relativeY + this.y,this.width,this.height)
+      this.isVisible = true;
     }
   }
 }
@@ -131,21 +223,33 @@ document.addEventListener('DOMContentLoaded', function () {
     enemies.push(new Enemy(data.playerId));
   })
 
+  setInterval(() => {
+    socket.emit('requestState')
+  }, 16);
+
+  socket.on('gameState',(data)=>{
+    gameState.state = data.state;
+    gameState.time = data.time
+  })
+
+
   socket.on('updatePlayerPosition',(data) => {
+
+    console.log(data)
 
     const foundObject = enemies.find(obj => obj.id === data.playerId);
 
     if(foundObject){
       //console.log("Player already in array.")
     }
-    else{
+    else{ 
       enemies.push(new Enemy(data.playerId))
     }
-    //console.log(data)
     const enemyToUpdate = enemies.find(enemy => enemy.id === data.playerId);
     if (enemyToUpdate) {
       enemyToUpdate.x = data.position.x;
       enemyToUpdate.y = data.position.y;
+      enemyToUpdate.isSeeker = data.role
     }
   });
 
@@ -158,36 +262,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   
   setInterval(() => {
-    socket.emit('playerPosition', { id: socket.id ,x: player.relativeX, y: player.relativeY})
-  }, 20);
+    socket.emit('playerPosition', { id: socket.id ,x: player.x, y: player.y})
+  }, 16);
 });
 
 function animate(){
-  if(isMovingUp){
-    for(let i=0;i<worldBorder.length;i++){
-      worldBorder[i].y+= speed
-    }
-
-  }
-
-  if(isMovingDown){
-    for(let i=0;i<worldBorder.length;i++){
-      worldBorder[i].y-= speed
-    }
-  }
-
-  if(isMovingRight){
-    for(let i=0;i<worldBorder.length;i++){
-      worldBorder[i].x-= speed
-    }
-  }
-
-  if(isMovingLeft){
-    for(let i=0;i<worldBorder.length;i++){
-      worldBorder[i].x+= speed
-    }
-  }
- 
   // clear background with black
   ctx.fillStyle = "black"
   ctx.fillRect(0,0,canvas.width,canvas.height)
@@ -195,13 +274,12 @@ function animate(){
   // draw world border
   ctx.fillStyle = "white"
   for(let i=0;i<worldBorder.length;i++){
-    ctx.fillRect(worldBorder[i].x, worldBorder[i].y, worldBorder[i].width, worldBorder[i].height)
+    worldBorder[i].draw(ctx, canvas, player, "white")
   }
 
-  // draw a barrier with white
-  ctx.fillStyle = "white"
+  // draw a barriers
   for(let i=0;i<barriers.length;i++){
-    barriers[i].draw(ctx, canvas, player)
+    barriers[i].draw(ctx, canvas, player, "white")
   }
   
     // Draw enemies
@@ -209,11 +287,36 @@ function animate(){
       enemy.draw();
     });
 
+    let enemyIsSeeker = false;
+    for(let i=0;i<enemies.length;i++){
+      if(enemies[i].isSeeker){
+        enemyIsSeeker = true;
+      }
+    }
+    if(!enemyIsSeeker){
+      player.isSeeker = true;
+    }
+    else{
+      player.isSeeker = false;
+    }
+
     player.draw()
+
+    if(gameState.state == "starting"){
+        ctx.font = "48px serif";
+        ctx.fillText(gameState.time, canvas.width/2-player.width/2 - player.x-20, canvas.height/2-player.height/2 - player.y -200  )
+      if(player.isSeeker){
+        spawnDoor.draw(ctx,canvas,player,"lightblue")
+      } 
+    }
+
+    // draw countdown
+    
 
   requestAnimationFrame(animate)
 }
 animate()
+
 
 window.addEventListener("keydown",(e)=>{
   if(e.code=="KeyW"){
@@ -227,6 +330,9 @@ window.addEventListener("keydown",(e)=>{
   }
   if(e.code=="KeyA"){
     isMovingLeft = true
+  }
+  if(e.code=="ShiftLeft"){
+    speed = 2.5
   }
 })
 
@@ -243,20 +349,7 @@ window.addEventListener("keyup",(e)=>{
   if(e.code=="KeyA"){
     isMovingLeft = false
   }
-})
-
-
-
-function lineLine(x1,y1,x2,y2,x3,y3,x4,y4){
-  let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-  let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-  if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-    return true;
+  if(e.code=="ShiftLeft"){
+    speed = 1.8
   }
-  return false;
-}
-
-function lineIntersect(){
-  lineLine(x1,y1,x2,y2,x3,y3,x4,y4)
-}
-
+})

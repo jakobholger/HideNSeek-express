@@ -19,7 +19,7 @@ const isAdmin = (req, res, next) => {
 
  db.get(selectUser,[req.session.userId],(err,row)=>{
    if(err)return console.error(err.message)
-    console.log(row.userId)
+    console.log(row.id)
    if(req.session.userId == row.id && row.isAdmin){
     next()
    }
@@ -27,10 +27,29 @@ const isAdmin = (req, res, next) => {
     res.redirect('/login')
    }
  })}
+ else{
+  res.redirect('/login')
+ }
 }
 
 // viewing users
 router.get('/', isAdmin, function(req, res, next) {
+  const query = 'SELECT * FROM users';
+  let authenticated = false;
+  if(req.session.userId)authenticated=true
+  db.all(query, [], (err, users) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Internal Server Error');
+      return;
+    }
+
+  res.render('admin', { users, authenticated });
+});
+});
+
+// viewing gamepanel
+router.get('/game', isAdmin, function(req, res, next) {
   const query = 'SELECT * FROM users';
   let authenticated = false;
   if(req.session.userId) authenticated=true
@@ -41,7 +60,7 @@ router.get('/', isAdmin, function(req, res, next) {
       return;
     }
 
-  res.render('admin', { users, authenticated });
+  res.render('socketpanel', { users, authenticated });
 });
 });
 

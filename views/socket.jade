@@ -1,9 +1,13 @@
-extends layout
-
-block content
+head
+ meta(name='viewport', content='width=device-width, initial-scale=1.0')
+body
+button 
+ a.nav-item.nav-link.active(href='/') Home
   canvas
   script(type="module", src="/javascripts/client/barrier.js") 
   script(type="module", src="/javascripts/client/main.js") 
+  link(rel='stylesheet', href='/stylesheets/style.css')
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js")
   //script(src="http://localhost:3001/socket.io/socket.io.js")
   script(src="https://cdn.socket.io/4.0.1/socket.io.min.js")
   //script(src="/javascripts/socketScript.js")
