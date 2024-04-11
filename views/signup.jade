@@ -6,13 +6,13 @@ block content
   div.wrapper
     h1 Sign up Page
     form(action='/sign-up', method='POST')
-      label(for='email') Email:
-      | 
-      input(type='email', id='email', name='email', required, placeholder='Enter email')
-      br
       label(for='userName') Username:
       | 
       input(type='text', id='userName', name='userName', required, placeholder='Enter username')
+      br
+      label(for='email') Email:
+      | 
+      input(type='email', id='email', name='email', required, placeholder='Enter email')
       br
       label(for='passWord1') Password:
       | 

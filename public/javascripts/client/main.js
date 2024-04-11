@@ -10,12 +10,14 @@ let scale = Math.min(canvas.width / 800, canvas.height / 600);
 
 let speed = 1.8
 
-let gameState = {state:undefined, time:undefined};
+let gameState = {state:undefined, time:10, winner:undefined};
 
 let isMovingUp = false;
 let isMovingDown = false;
 let isMovingLeft = false;
 let isMovingRight = false;
+
+let isGameStarting = true
 
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
@@ -66,12 +68,28 @@ barriers.push(new Barrier(100, 300, 200, 3))
 barriers.push(new Barrier(500,-200,3,400))
 barriers.push(new Barrier(500,0,300,3))
 
+// right side of map
+barriers.push(new Barrier(500,-750,3,300))
+barriers.push(new Barrier(650,-500,150,3))
+
+//box top right spawn
+barriers.push(new Barrier(175,-612,150,150))
+
+//barrier top spawn exit
+barriers.push(new Barrier(1.5,-550,3,-200))
+barriers.push(new Barrier(-400,-750,900,3))
+
+//barrier top spawn exit
+barriers.push(new Barrier(1.5,-550,3,-200))
+barriers.push(new Barrier(-400,-750,800,3))
+
 // spawn door
 let spawnDoor = new Barrier(-100,100,200,3)
 
 // playerclass
 class Player{
-  constructor(){
+  constructor(name){
+    this.name = name
     this.isDead = false;
     this.isSeeker = false;
     this.isColliding = false
@@ -112,7 +130,7 @@ class Player{
   }
   checkCollisions(){
     for(let i=0;i<barriers.length;i++){
-      if(checkCollision(this,barriers[i])){
+      if(checkCollision(this,barriers[i]) && !this.isDead){
           this.x = this.previousX
           this.y = this.previousY
         }
@@ -137,23 +155,32 @@ class Player{
   draw(){
     this.previousX = this.x
     this.previousY = this.y
-    this.tick++
     this.updatePosition()
     this.checkCollisions()
-    ctx.fillStyle = "blue"
-    ctx.fillRect(this.drawX,this.drawY,this.width,this.height)
+    if(this.isDead){
+      ctx.fillStyle = "rgba(255,255,255,0.4)"
+      ctx.fillRect(this.drawX,this.drawY,this.width,this.height)
+      ctx.font = "40px serif";
+      ctx.fillStyle = "red"
+      ctx.fillText("WASTED", canvas.width/2-ctx.measureText("WASTED").width/2, canvas.height/2 - 60)
+    }
+    else{
+      ctx.fillStyle = "blue"
+      ctx.fillRect(this.drawX,this.drawY,this.width,this.height)
+      ctx.font = "20px serif";
+      ctx.fillText(this.name, canvas.width/2-ctx.measureText(this.name).width/2, canvas.height/2 - 60)
+    }
   }
 }
 
-
-let player = new Player()
-
+let player = new Player(playerUsername)
 
 class Enemy{
   constructor(id){
+    this.id = id
+    this.name = ""
     this.isDead = false;
     this.isVisible = true;
-    this.id = id
     this.width = 80
     this.x = canvas.width/2 - this.width/2;
     this.height = 80
@@ -167,8 +194,8 @@ class Enemy{
   draw(){
     this.updatePosition() 
 
-        if(checkCollision(this,player) && player.isSeeker){
-            this.isDead = true;
+        if(checkCollision(this,player) && this.isSeeker && gameState.state == "running"){
+            player.isDead = true;
           }
 
 
@@ -180,7 +207,7 @@ class Enemy{
         ctx.lineTo(player.x + player.width/2, player.y + player.height/2)
         ctx.stroke()*/
 
-      if(hit && gameState.state == "starting" && player.isSeeker){
+      if(hit && gameState.state == "starting" && player.isSeeker && gameState.time >= 0){
         this.isVisible = false;
       }
     
@@ -194,14 +221,38 @@ class Enemy{
         ctx.lineTo(player.x + player.width/2, player.y + player.height/2)
         ctx.stroke()*/
 
-      if(hit){
+      if(hit && !player.isDead){
         this.isVisible = false;
         break;
       }
     }
-    if(this.isVisible){
+    // hiders are red for seeker
+    if(this.isVisible && !this.isDead && player.isSeeker){
       ctx.fillStyle = "red"
       ctx.fillRect(canvas.width/2-player.width/2 - player.x + this.x,canvas.height/2-player.height/2 - player.y + this.y,this.width,this.height)
+      ctx.font = "20px serif";
+      ctx.fillText(this.name, canvas.width/2-player.width/2 - player.x + this.x - ctx.measureText(this.name).width/2 + this.width/2, canvas.height/2-player.height/2 - player.y + this.y - 20)
+    }
+    // friendly
+    if(this.isVisible && !this.isDead && !this.isSeeker && !player.isSeeker){
+      ctx.fillStyle = "lightblue"
+      ctx.fillRect(canvas.width/2-player.width/2 - player.x + this.x,canvas.height/2-player.height/2 - player.y + this.y,this.width,this.height)
+      ctx.font = "20px serif";
+      ctx.fillText(this.name, canvas.width/2-player.width/2 - player.x + this.x - ctx.measureText(this.name).width/2 + this.width/2, canvas.height/2-player.height/2 - player.y + this.y - 20)
+    }
+    // enemy seeker
+    if(this.isVisible && !this.isDead && this.isSeeker){
+      ctx.fillStyle = "red"
+      ctx.fillRect(canvas.width/2-player.width/2 - player.x + this.x,canvas.height/2-player.height/2 - player.y + this.y,this.width,this.height)
+      ctx.font = "20px serif";
+      ctx.fillText(this.name, canvas.width/2-player.width/2 - player.x + this.x - ctx.measureText(this.name).width/2 + this.width/2, canvas.height/2-player.height/2 - player.y + this.y - 20)
+    }
+    // player and enemy is dead
+    if(this.isDead && player.isDead){
+      ctx.fillStyle = "rgba(255,255,255,0.4)"
+      ctx.fillRect(canvas.width/2-player.width/2 - player.x + this.x,canvas.height/2-player.height/2 - player.y + this.y,this.width,this.height)
+      ctx.font = "20px serif";
+      ctx.fillText(this.name, canvas.width/2-player.width/2 - player.x + this.x - ctx.measureText(this.name).width/2 + this.width/2, canvas.height/2-player.height/2 - player.y + this.y - 20)
     }
     else{
       this.isVisible = true;
@@ -224,18 +275,39 @@ document.addEventListener('DOMContentLoaded', function () {
   })
 
   setInterval(() => {
-    socket.emit('requestState')
+    socket.emit('playerInformation', { id: socket.id ,x: player.x, y: player.y, isDead:player.isDead, name:player.name})
   }, 16);
+
 
   socket.on('gameState',(data)=>{
     gameState.state = data.state;
-    gameState.time = data.time
-  })
+    gameState.time = data.time;
+    gameState.winner = data.winner;
 
+    if(gameState.state == "starting" && !isGameStarting){
+      player.x = -40
+      player.y = -40
+      player.isDead = false;
+      isGameStarting = true;
+    }
+    if(gameState.winner == "seeker"){
+      console.log("seeker won")
+      player.isDead = false;
+      isGameStarting = false;
+      // display message seeker win
+    }
+    if(gameState.winner == "hider"){
+      console.log("hider won")
+      player.isDead = false;
+      isGameStarting = false;
+      // display message hider win
+    }
+  })
 
   socket.on('updatePlayerPosition',(data) => {
 
-    console.log(data)
+    //console.log(data)
+    
 
     const foundObject = enemies.find(obj => obj.id === data.playerId);
 
@@ -250,6 +322,8 @@ document.addEventListener('DOMContentLoaded', function () {
       enemyToUpdate.x = data.position.x;
       enemyToUpdate.y = data.position.y;
       enemyToUpdate.isSeeker = data.role
+      enemyToUpdate.isDead = data.isDead
+      enemyToUpdate.name = data.name
     }
   });
 
@@ -261,9 +335,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
   
-  setInterval(() => {
-    socket.emit('playerPosition', { id: socket.id ,x: player.x, y: player.y})
-  }, 16);
 });
 
 function animate(){
@@ -295,28 +366,31 @@ function animate(){
     }
     if(!enemyIsSeeker){
       player.isSeeker = true;
+      speed = 2
     }
     else{
       player.isSeeker = false;
+      speed = 1.8
     }
 
     player.draw()
-
-    if(gameState.state == "starting"){
         ctx.font = "48px serif";
-        ctx.fillText(gameState.time, canvas.width/2-player.width/2 - player.x-20, canvas.height/2-player.height/2 - player.y -200  )
-      if(player.isSeeker){
+        ctx.fillText(gameState.time, canvas.width/2-player.width/2 - player.x-20, canvas.height/2-player.height/2 - player.y -200)
+      if(player.isSeeker && gameState.state == "starting" && gameState.time>=0){
         spawnDoor.draw(ctx,canvas,player,"lightblue")
       } 
-    }
-
-    // draw countdown
-    
+  
+      if(gameState.state == "starting" && !isGameStarting){
+        console.log("Starting")
+        isGameStarting = true;
+      }
 
   requestAnimationFrame(animate)
 }
 animate()
 
+let canSprint = true;
+let sprintTimer = false;
 
 window.addEventListener("keydown",(e)=>{
   if(e.code=="KeyW"){
@@ -332,9 +406,46 @@ window.addEventListener("keydown",(e)=>{
     isMovingLeft = true
   }
   if(e.code=="ShiftLeft"){
-    speed = 2.5
+    if(canSprint){
+      if(player.isSeeker){
+        speed = 2.5
+      }
+      if(!player.isSeeker){
+        speed = 2
+      }
+      if(!sprintTimer){
+        sprintFunction()
+      }
+    }
   }
 })
+
+function sprintFunction(){
+  let countdownTime = 4
+  sprintInterval()
+  const sprintInterval = setInterval(function() {
+    sprintTimer = true;
+      countdownTime--;
+      // If the countdown reaches 0, change to waitTimer
+      if (countdownTime == 0) { 
+        canSprint = false
+        clearInterval(startInterval);
+        let waitTimer = 4
+        const waitInterval = setInterval(function() {
+          // Decrement the countdown time
+          waitTimer--
+    
+          // If the countdown reaches 0, change the game state and stop updating
+          if (waitTimer == 0) {
+            clearInterval(waitInterval);
+            canSprint = true
+            sprintTimer = false;
+          }
+        }, 1000);
+      }
+    }, 1000);
+}
+
 
 window.addEventListener("keyup",(e)=>{
   if(e.code=="KeyW"){
@@ -352,4 +463,4 @@ window.addEventListener("keyup",(e)=>{
   if(e.code=="ShiftLeft"){
     speed = 1.8
   }
-})
+})  

@@ -17,17 +17,19 @@ const isAuthenticated = (req, res, next) => {
 //Homepage
 router.get('/', function(req, res, next) {
   let authenticated = false;
-  let ipAddress = req.socket.remoteAddress;
-  console.log(ipAddress)
+  const ipAddress = req.ip.replace(/^::ffff:/, ''); // Remove the IPv6 part
+  console.log('Client IP Address:', ipAddress);
   if(req.session.userId) authenticated=true
   res.render('index', { authenticated });
 });
 
 //Homepage
-router.get('/socket', function(req, res, next) {
+router.get('/socket', isAuthenticated, function(req, res, next) {
   let authenticated = false;
   if(req.session.userId) authenticated=true
-  res.render('socket', { authenticated });
+  let username = req.session.username
+  console.log(username)
+  res.render('socket', { authenticated, username });
 });
 
 router.get('/login', function(req, res, next) {
@@ -143,6 +145,7 @@ router.post('/login', function(req, res, next){
         if(result){
           console.log("User: " + displayName + " signed in.")
           req.session.userId = row.id;
+          req.session.username = row.username;
           res.redirect('/admin')
         }
         else{

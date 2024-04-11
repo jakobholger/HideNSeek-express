@@ -24,9 +24,11 @@ const io = socketIO(server);
 class Player{
   constructor(id){
     this.id = id;
+    this.name;
     this.x = undefined;
     this.y = undefined;
     this.isSeeker = false;
+    this.isDead = false;
   }
   getPosition() {
     return { x: this.x, y: this.y };
@@ -35,24 +37,84 @@ class Player{
 
 let players = {}; // Store players
 
-let gameState = {state:"starting", time:10}
+let gameState = {state:"running", time:10, winner:""}
+
+let isGameStarted = false;
+
+let shouldGameRun = true;
+
+let stopGame = false;
 
 function startGame(){
+  gameState.state = "starting"
   let countdownTime = 10
-  const countdownInterval = setInterval(function() {
+  let gameTime = 20
+  const startInterval = setInterval(function() {
     // Decrement the countdown time
-    countdownTime--;
     gameState.time = countdownTime
-
+    console.log("Starttimer left: " + gameState.time)
+    countdownTime--;
     // If the countdown reaches 0, change the game state and stop updating
-    if (countdownTime < 1) {
+    if (countdownTime == 0) {
       gameState.state = "running"
-      clearInterval(countdownInterval);
+      clearInterval(startInterval);
+      const gameInterval = setInterval(function() {
+        // Decrement the countdown time
+        gameState.time = gameTime
+        console.log("Gametime left: " + gameState.time)
+        gameTime--;
+
+        if(stopGame){
+          clearInterval(gameInterval)
+          startGame()
+          stopGame = false;
+        }
+        // If the countdown reaches 0, change the game state and stop updating
+        if (gameTime == 0) {
+          clearInterval(gameInterval);
+          if(shouldGameRun /* boolean to keep running */){
+            for(let key in players){
+              players[key].isSeeker = false;
+            }
+            const keys = Object.keys(players);
+            players[keys[Math.floor(Math.random() * keys.length)]].isSeeker = true;
+            startGame()
+          }
+        }
+      }, 1000);
     }
   }, 1000);
 }
 
+function checkDeadPlayers(){
+  gameState.winner = ""
+  let deadPlayers = 0;
+  for(let key in players){
+    if(players[key].isDead){
+      deadPlayers++
+    }
+  }
+  if(deadPlayers == Object.keys(players).length-1 && gameState.state == "running" && gameState.time>0){
+    console.log("seeker")
+    gameState.winner = "seeker"
+    stopGame = true    
+  }
+  if(deadPlayers < Object.keys(players).length-1 && gameState.state == "running" && gameState.time == 2){
+    console.log("hider")
+    gameState.winner = "hider"
+    stopGame = true
+  }
+}
 
+  // 60hz gamestate emitter
+  setInterval(() => {
+
+    // see who is winner
+    checkDeadPlayers()
+
+    // Emit game state
+    io.emit('gameState', gameState)
+  }, 16);
 
 
 // socket.io connection handling
@@ -61,19 +123,28 @@ io.on('connection', (socket) => {
   // Create a new Player instance serverside
   let player = new Player(socket.id);
   players[socket.id] = player;
-
-  // gamestate
   console.log('A user connected');
 
 
-
-  if(Object.keys(players).length<2){
-    socket.broadcast.emit('gameState', {state:"running", time:0})
+  // on connection what should be sent?
+  if(Object.keys(players).length < 2){
+    gameState.state = "running"
+    gameState.time = 0
+    gameState.winner = ""
+    shouldGameRun = false
   }
-  else{
+  if(Object.keys(players).length>=2 && isGameStarted){
+    // continue running
+  }
+  if(Object.keys(players).length==2 && !isGameStarted){
+    for(let key in players){
+      players[key].isSeeker = false;
+    }
     const keys = Object.keys(players);
-    players[keys[0]].isSeeker = true;
+    players[keys[Math.floor(Math.random() * keys.length)]].isSeeker = true;
+    shouldGameRun = true;
     startGame()
+    isGameStarted = true;
   }
 
 
@@ -82,29 +153,32 @@ io.on('connection', (socket) => {
   socket.broadcast.emit('newUserConnected', { playerId: socket.id, position: player.getPosition() });
 
   // Player positioning
-  socket.on('playerPosition', (position) => {
+  socket.on('playerInformation', (data) => {
     // Update the players position serverside
-    player.x = position.x
-    player.y = position.y
+    player.x = data.x
+    player.y = data.y
+    player.isDead = data.isDead
+    player.name = data.name
 
     //Broadcast the players new position
-    socket.broadcast.emit('updatePlayerPosition', { playerId: socket.id, position: {x: player.x, y: player.y}, role: player.isSeeker });
+    socket.broadcast.emit('updatePlayerPosition', { playerId: socket.id, position: {x: player.x, y: player.y}, role: player.isSeeker, isDead: player.isDead, name: player.name });
   });
 
-  socket.on('requestState', ()=>{
-    socket.broadcast.emit('gameState', gameState)
-  })
+
 
   socket.on('disconnect', () => {
     console.log('User disconnected');
+    
     io.emit('userDisconnected', { playerId: socket.id });
     delete players[socket.id]
 
     if(Object.keys(players).length<2){
-      io.emit('gameState', {state:"running", time:0})
+      gameState.state = "running"
+      gameState.time = 0
+      gameState.winner = ""
     }
     else{
-      startGame()
+
     }
   });
 });

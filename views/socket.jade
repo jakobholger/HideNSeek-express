@@ -4,12 +4,14 @@ body
 button 
  a.nav-item.nav-link.active(href='/') Home
   canvas
+  script.
+    var playerUsername = '#{username}';
   script(type="module", src="/javascripts/client/barrier.js") 
   script(type="module", src="/javascripts/client/main.js") 
   link(rel='stylesheet', href='/stylesheets/style.css')
   script(src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js")
   //script(src="http://localhost:3001/socket.io/socket.io.js")
-  script(src="https://cdn.socket.io/4.0.1/socket.io.min.js")
+  script(src="https://cdn.socket.io/4.7.5/socket.io.min.js")
   //script(src="/javascripts/socketScript.js")
 
 
