@@ -1,4 +1,8 @@
-# HideNSeek SLAKTSTUDIOS
+# HideNSeek webgame
+
+### Notes
+
+Game is not finished and Docker is not properly setup.
 
 ## Getting Started
 
