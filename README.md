@@ -12,7 +12,6 @@ A multiplayer Hide And Seek game using socketIo and Express. Webserver also has 
 ![Screenshot 3](screenshots/HNSAdmin.png)
 ![Screenshot 4](screenshots/HNSPlayer1.png)
 ![Screenshot 5](screenshots/HNSPlayer2.png)
-![Screenshot 6](screenshots/HideNSeekBackground.mp4)
 
 
 ### Notes
