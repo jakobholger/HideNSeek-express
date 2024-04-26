@@ -1,6 +1,6 @@
 # HideNSeek webgame
 
-###Notes
+### Notes
 
 Game is not finished and Docker is not properly setup.
 
