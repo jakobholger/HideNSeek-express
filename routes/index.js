@@ -38,11 +38,6 @@ router.get('/login', function(req, res, next) {
   res.render('login', { authenticated });
 });
 
-router.get('/graphics', function(req, res, next) {
-  let authenticated = false;
-  if(req.session.userId) authenticated=true
-  res.render('graphics', { authenticated });
-});
 
 router.get('/sign-up', function(req, res, next) {
   let authenticated = false;
