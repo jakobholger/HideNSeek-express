@@ -2,7 +2,7 @@
 
 ## Description
 
-A multiplayer Hide And Seek game using socketIo and Express. Webserver also has a sign-up, login and admin function. All visibility checks are managed clientside therefore meaning no Anticheat measures taken.
+A multiplayer Hide And Seek game using SocketIo and Express. Webserver also has a sign-up, login and admin function. All visibility checks are managed clientside therefore meaning no Anticheat measures taken.
 
 ## Screenshots
 
@@ -34,4 +34,9 @@ Run the following command to install project dependencies:
 npm install
 # or
 yarn install
+
+# to run
+npm start
+# or
+yarn start
 
